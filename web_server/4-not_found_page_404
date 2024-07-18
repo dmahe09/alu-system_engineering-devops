@@ -1,50 +1,22 @@
 #!/usr/bin/env bash
-# This bash script configures the Nginx server to have a custom 404 page
-# that contains the string Ceci n'est pas une page
+# Configure Nginx server to have a custom 404 page
+sudo apt-get update
+sudo apt-get -y install nginx
+sudo chown -R "$USER":"$USER" /var/www/html
+echo "Ceci n'est pas une page" > /var/www/html/err404.html
 
-# Update package list and install Nginx
-sudo apt-get update -y
-sudo apt-get install nginx -y
-
-# Create a custom HTML page for 404 errors
-echo "Ceci n'est pas une page" | sudo tee /var/www/html/404.html
-
-# Configure Nginx to use the custom 404 page
-sudo bash -c 'cat <<EOF > /etc/nginx/sites-available/default
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    root /var/www/html;
-    index index.html index.htm;
-
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-
-    location = /404.html {
-        internal;
-        root /var/www/html;
-    }
-
-    error_page 404 /404.html;
-}
-EOF'
-
-# Restart Nginx to apply the changes
+config_file=\
+"server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+	server_name _;
+	error_page 404 /err404.html;
+	root /var/www/html;
+	index index.html index.htm index.nginx-debian.html;
+#	location / {
+#      		try_files $uri \$uri/ =404;
+# }
+}"
+sudo chown -R "$USER":"$USER" /etc/nginx/sites-available/default
+echo "$config_file" > /etc/nginx/sites-available/default
 sudo service nginx restart
-
-# Ensure Nginx is listening on port 80
-sudo lsof -i :80 || echo "Nginx is not listening on port 80"
-
-# Test the custom 404 page using curl
-response=$(curl -sI http://localhost/nonexistent-page)
-expected="HTTP/1.1 404 Not Found"
-content=$(curl -s http://localhost/nonexistent-page)
-
-# Check if the response contains the expected 404 error code and string
-if [[ "$response" == *"$expected"* && "$content" == "Ceci n'est pas une page" ]]; then
-    echo "Custom 404 page configuration successful!"
-else
-    echo "Error: Custom 404 page configuration failed."
-fi
