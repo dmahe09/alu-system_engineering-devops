@@ -1,23 +1,41 @@
 #!/usr/bin/env bash
-# bash script to install nginx web server & make the following configurations:
+# Installs Nginx with the following configurations:
+#+    Listens on port 80.
+#+    Returns a page containing "Holberton School" when queried
+#++    at the root with a curl GET request.
 
-apt-get update
-apt-get install -y nginx
+# Update package list and install Nginx
+sudo apt-get update -y
+sudo apt-get install nginx -y
 
-mkdir /etc/nginx/html
+# Create directory for HTML files
+sudo mkdir -p /var/www/html
 
-touch /etc/nginx/html/index.html
+# Create HTML file with the desired string
+sudo bash -c 'echo "Holberton School" > /var/www/html/index.html'
 
-
-echo "Holberton School" > /etc/nginx/html/index.html
-
-
-printf %s "server {
-     listen      80 default_server;
-     listen      [::]:80 default_server;
-     root        /etc/nginx/html;
-     index       index.html index.htm;
+# Modify Nginx configuration
+sudo bash -c 'printf %s "server {
+    listen      80 default_server;
+    listen      [::]:80 default_server;
+    root        /var/www/html;
+    index       index.html index.htm;
 }
-" > /etc/nginx/sites-available/default
+" > /etc/nginx/sites-available/default'
 
-service nginx restart
+# Restart Nginx to apply the changes
+sudo service nginx restart
+
+# Ensure Nginx is listening on port 80
+sudo lsof -i :80 || echo "Nginx is not listening on port 80"
+
+# Test the Nginx server using curl
+response=$(curl -s http://localhost)
+expected="Holberton School"
+
+# Check if the response contains the expected string
+if [[ "$response" == *"$expected"* ]]; then
+    echo "Nginx installation and configuration successful!"
+else
+    echo "Error: Nginx configuration failed."
+fi
